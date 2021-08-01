@@ -1,9 +1,53 @@
-<script src="https://cdn.bootcss.com/lodash.js/4.17.15/lodash.core.min.js">
+function f(a) {
+    console.log(a);
+  }
+  
+  // f1000 passes calls to f at maximum once per 1000 ms
+  let f1000 = throttle(f, 1000);
+  
+  f1000(1); // shows 1
+  f1000(2); // (throttling, 1000ms not out yet)
+  f1000(3); // (throttling, 1000ms not out yet)
+  
+  // when 1000 ms time out...
+  // ...outputs 3, intermediate value 2 was ignored
 
-    let f = _.debounce(alert, 1000);
-    
-    f("a");
-    setTimeout( () => f("b"), 200);
-    setTimeout( () => f("c"), 500);
-    // debounced function waits 1000ms after the last call and then runs: alert("c")
-    </script>
+//官方答案
+//我对题目的理解有误，这一章真的很难懂
+//题目的意思是，每ms间隔调用一次func，在此间隔期间，不管你调用了多少次func，都是没有响应的
+//装饰器只会记录下来你调用func时传入的参数，然后在定时器时间到达之后，使用保存下来的参数去调用func
+function throttle(func, ms) {
+
+//其实这个装饰器我有点没太看明白，他把变量声明在了装饰器中
+//但是返回的function却可以正常使用这些局部变量，就很迷，感觉跟其他高级语言的差别有点太大了
+
+let isThrottled = false,
+    savedArgs,
+    savedThis;
+
+function wrapper() {
+
+    if (isThrottled) { // (2)
+    savedArgs = arguments;
+    savedThis = this;
+    return;
+    }
+    isThrottled = true;
+
+    func.apply(this, arguments); // (1)
+
+    setTimeout(function() {
+    isThrottled = false; // (3)
+    if (savedArgs) {
+        //注意这里有一个坑，apply是进行了一个call forwarding
+        //因此不要把这里理解成一个递归调用，apply是立即返回的，它不会阻塞
+        console.log(Date.now())
+        wrapper.apply(savedThis, savedArgs);
+        savedArgs = savedThis = null;
+        console.log(Date.now())
+    }
+    }, ms);
+}
+
+return wrapper;
+  }
